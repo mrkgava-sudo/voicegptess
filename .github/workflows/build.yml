@@ -1,0 +1,37 @@
+
+name: Build iOS App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Download source
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build iOS app
+        run: |
+          xcodebuild \
+            -project VoiceAssistant.xcodeproj \
+            -scheme VoiceAssistant \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/VoiceAssistant.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            archive
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceAssistant-build
+          path: build/VoiceAssistant.xcarchive
