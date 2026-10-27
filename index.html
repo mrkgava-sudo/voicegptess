@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101114">
+<title>Голосовой помощник</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 25px 18px;
+  background: radial-gradient(ellipse at top, #292344, #101114 60%);
+  color: #f4f4f7;
+  font: 16px -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+main { max-width: 600px; margin: auto; }
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 45px;
+}
+
+.logo {
+  background: linear-gradient(135deg, #a394ff, #5945df);
+  border-radius: 15px;
+  padding: 13px;
+  font-size: 23px;
+}
+
+h1 { font-size: 20px; margin: 0; }
+.muted { color: #a5a2b5; font-size: 13px; margin-top: 5px; }
+
+.hero { text-align: center; margin-bottom: 30px; }
+
+.orb {
+  width: 135px;
+  height: 135px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 45px;
+  background: radial-gradient(circle at 30% 25%, #c3b8ff, #7763ff 50%, #37247d);
+  box-shadow: 0 0 60px #806dff45;
+}
+
+.listening { animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  50% { transform: scale(1.06); }
+}
+
+h2 { font-size: 25px; margin: 0 0 10px; }
+
+.card {
+  background: #191b21;
+  border: 1px solid #2b2d36;
+  border-radius: 20px;
+  padding: 17px;
+  margin: 14px 0;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #a5a2b5;
+  margin-bottom: 12px;
+}
+
+#answer { white-space: pre-wrap; line-height: 1.5; min-height: 45px; }
+
+.controls { display: flex; gap: 10px; margin-top: 15px; }
+
+button {
+  border: 0;
+  border-radius: 13px;
+  padding: 14px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#mic {
+  flex: 1;
+  background: linear-gradient(135deg, #8878ff, #604ce5);
+}
+
+#send { background: #30313c; }
+
+input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 13px;
+  border: 1px solid #30313c;
+  background: #101114;
+  color: white;
+  font-size: 16px;
+}
+
+footer {
+  color: #898697;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 25px;
+}
+</style>
+</head>
+
+<body>
+<main>
+  <header>
+    <div class="logo">✦</div>
+    <div>
+      <h1>Голосовой помощник</h1>
+      <div class="muted">Русский язык</div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="orb" id="orb">✦</div>
+    <h2 id="status">Я на связи</h2>
+    <p class="muted">Нажми на микрофон и говори</p>
+  </section>
+
+  <section class="card">
+    <div class="label">ТЫ СКАЗАЛ</div>
+    <div id="heard" class="muted">Здесь появится твоя речь.</div>
+  </section>
+
+  <section class="card">
+    <div class="label">ОТВЕТ ПОМОЩНИКА</div>
+    <div id="answer">Привет! Чем могу помочь?</div>
+
+    <div class="controls">
+      <button id="mic">🎙 Говорить</button>
+      <button id="send">➤</button>
+    </div>
+
+    <input id="text" placeholder="Напиши сообщение…">
+  </section>
+
+  <footer>
+    Прототип голосового помощника
+  </footer>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const Recognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
+
+let recognition;
+let listening = false;
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+
+  speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ru-RU";
+  utterance.rate = 1;
+
+  speechSynthesis.speak(utterance);
+}
+
+function respond(text) {
+  const q = text.trim();
+  const s = q.toLowerCase();
+
+  if (!q) return;
+
+  let answer;
+
+  if (/привет|здравствуй/.test(s)) {
+    answer = "Привет, бро! Чем помочь?";
+  } else if (s.includes("как дела")) {
+    answer = "Всё отлично! Готов помочь.";
+  } else if (s.includes("кто ты") ||
+             s.includes("как тебя зовут")) {
+    answer = "Я твой голосовой помощник.";
+  } else if (s.includes("что ты умеешь") ||
+             s.includes("помощь")) {
+    answer = "Пока я умею отвечать на простые команды. Для полноценного общения нужно подключить ИИ.";
+  } else if (s.includes("стоп") ||
+             s.includes("замолчи")) {
+    speechSynthesis.cancel();
+    answer = "Хорошо, бро.";
+  } else {
+    answer = `Я услышал: «${q}». Настоящая ИИ-модель пока не подключена.`;
+  }
+
+  $("heard").textContent = q;
+  $("answer").textContent = answer;
+  $("status").textContent = "Я на связи";
+
+  speak(answer);
+}
+
+function startListening() {
+  if (!Recognition) {
+    $("answer").textContent =
+      "Браузер не поддерживает распознавание речи. Попробуй другой браузер.";
+    return;
+  }
+
+  if (listening) {
+    recognition.stop();
+    return;
+  }
+
+  recognition = new Recognition();
+  recognition.lang = "ru-RU";
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    listening = true;
+    $("orb").classList.add("listening");
+    $("status").textContent = "Слушаю…";
+    $("mic").textContent = "■ Остановить";
+  };
+
+  recognition.onresult = event => {
+    const text = event.results[0][0].transcript;
+    $("text").value = text;
+    respond(text);
+  };
+
+  recognition.onerror = () => {
+    $("status").textContent = "Ошибка микрофона";
+  };
+
+  recognition.onend = () => {
+    listening = false;
+    $("orb").classList.remove("listening");
+    $("mic").textContent = "🎙 Говорить";
+    $("status").textContent = "Я на связи";
+  };
+
+  recognition.start();
+}
+
+$("mic").addEventListener("click", startListening);
+
+$("send").addEventListener("click", () => {
+  respond($("text").value);
+  $("text").value = "";
+});
+
+$("text").addEventListener("keydown", event => {
+  if (event.key === "Enter") $("send").click();
+});
+</script>
+</body>
+</html>
